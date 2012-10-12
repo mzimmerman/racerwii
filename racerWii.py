@@ -8,10 +8,10 @@ Created on Oct 12, 2012
 Using code based upon MythPyWii by benjie
 '''
 
-import socket, asynchat, asyncore, time, cwiid, logging, os, thread, subprocess
+import socket, asynchat, asyncore, time, cwiid, logging, os, thread, subprocess, curses
 from math import atan, cos
 
-logging.basicConfig(filename="/dev/stdout", level=logging.DEBUG)
+#logging.basicConfig(filename="/dev/stdout", level=logging.DEBUG)
 
 logger = logging.getLogger("wiiRacer")
 logger.setLevel(logging.DEBUG)
@@ -23,9 +23,9 @@ logger.addHandler(handler)
 class WiiController(object):
     #Initialize variables
     wm = None
-    reportvals = {"accel":cwiid.RPT_ACC, "button":cwiid.RPT_BTN, "ext":cwiid.RPT_EXT,  "status":cwiid.RPT_STATUS}
-    report={"accel":True, "button":True}
-    state = {"acc":[0, 0, 1]}
+    reportvals = {"button":cwiid.RPT_BTN, "ext":cwiid.RPT_EXT,  "status":cwiid.RPT_STATUS}
+    report={"button":True}
+    state = {}
     lasttime = 0.0
     laststate = {}
     responsiveness = 0.15
@@ -44,7 +44,7 @@ class WiiController(object):
 
     def wmcb(self, messages,timeout="0"):
         state = self.state
-        global ms
+	global runnerCount , startTime        
         for message in messages:
             if message[0] == cwiid.MESG_BTN:
                 state["buttons"] = message[1]
@@ -82,9 +82,16 @@ class WiiController(object):
                 # Stuff that doesn't need roll/etc calculations
 #                if state["buttons"] == cwiid.BTN_HOME:
                 if state["buttons"] == cwiid.BTN_A:
-			logger.info("Pressed A")
+			curses.beep()
+			runnerCount = runnerCount + 1
+			logger.info(str(runnerCount) + ": " + str(time.time() - startTime))
                 if state["buttons"] == cwiid.BTN_B:
-			logger.info("Pressed trigger")
+			curses.beep()
+			if (startTime == 0):
+				startTime = time.time()
+				logger.info("Race is started!")
+			else:
+				logger.info("Race is already started!")
  #               if state["buttons"] == cwiid.BTN_MINUS:
  #               if state["buttons"] == cwiid.BTN_UP:
  #               if state["buttons"] == cwiid.BTN_DOWN:
@@ -98,16 +105,16 @@ class WiiController(object):
     def __init__(self):
         self.wm = cwiid.Wiimote()
         logger.info("Connected to a wiimote :)")
+	logger.info("Press the trigger to start the race")
         # Wiimote calibration data (cache this)
         self.wii_calibration = self.wm.get_acc_cal(cwiid.EXT_NONE)
         self.wm.led = cwiid.LED1_ON | cwiid.LED4_ON
         self.wm.rpt_mode = sum(self.reportvals[a] for a in self.report if self.report[a])
         self.wm.enable(cwiid.FLAG_MESG_IFC | cwiid.FLAG_REPEAT_BTN)
         self.wm.mesg_callback = self.wmcb
-        self.lastaction = time.time()
         
 def closeWiimote():
-    logger.info("About to close connection to the Wiimote")
+    logger.info("Closing connection to the Wiimote")
     global wc
     if wc is not None:
         if wc.wm is not None:
@@ -117,18 +124,19 @@ def closeWiimote():
 
 def main():
     logger.info("Press 1&2 on the Wiimote")
-    global wc
+    global wc, startTime, runnerCount, screen
+    screen = curses.initscr()
     wc = None
     while True:
         while (wc is None):
             try:
                 wc = WiiController()
                 wc.rumble()
+		startTime = 0
+		runnerCount = 0
                 thread.start_new_thread(asyncore.loop,())
             except Exception, errMessage:
                 closeWiimote()
-        logger.debug("lastaction = " + str(wc.lastaction))
-        logger.debug("time.time() = " + str(time.time()))
-        logger.debug("difference = " + str(wc.lastaction - time.time()))
+	logger.debug("Race time = " + str(time.time() - startTime))
         time.sleep(5)
 main()
