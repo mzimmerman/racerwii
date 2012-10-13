@@ -44,7 +44,7 @@ class WiiController(object):
 
     def wmcb(self, messages,timeout="0"):
         state = self.state
-	global runnerCount , startTime        
+	global runnerCount , startTime, screen
         for message in messages:
             if message[0] == cwiid.MESG_BTN:
                 state["buttons"] = message[1]
@@ -82,16 +82,23 @@ class WiiController(object):
                 # Stuff that doesn't need roll/etc calculations
 #                if state["buttons"] == cwiid.BTN_HOME:
                 if state["buttons"] == cwiid.BTN_A:
-			curses.beep()
-			runnerCount = runnerCount + 1
-			logger.info(str(runnerCount) + ": " + str(time.time() - startTime))
+			if (startTime == 0):
+				screen.addstr(0,0,"Race is not started yet, press the trigger!")
+			else:
+				curses.flash()
+				runnerCount = runnerCount + 1
+				screen.insertln()
+				screen.addstr(str(runnerCount) + " : " + str(time.time() - startTime))
+			screen.refresh()
                 if state["buttons"] == cwiid.BTN_B:
-			curses.beep()
+			curses.flash()
 			if (startTime == 0):
 				startTime = time.time()
-				logger.info("Race is started!")
+				screen.erase()
+				screen.addstr(0,0,"Race is started!")
 			else:
-				logger.info("Race is already started!")
+				screen.addstr(0,0,"Race is already started!")
+		   	screen.refresh()
  #               if state["buttons"] == cwiid.BTN_MINUS:
  #               if state["buttons"] == cwiid.BTN_UP:
  #               if state["buttons"] == cwiid.BTN_DOWN:
@@ -104,8 +111,6 @@ class WiiController(object):
 
     def __init__(self):
         self.wm = cwiid.Wiimote()
-        logger.info("Connected to a wiimote :)")
-	logger.info("Press the trigger to start the race")
         # Wiimote calibration data (cache this)
         self.wii_calibration = self.wm.get_acc_cal(cwiid.EXT_NONE)
         self.wm.led = cwiid.LED1_ON | cwiid.LED4_ON
@@ -114,8 +119,7 @@ class WiiController(object):
         self.wm.mesg_callback = self.wmcb
         
 def closeWiimote():
-    logger.info("Closing connection to the Wiimote")
-    global wc
+    global wc , screen
     if wc is not None:
         if wc.wm is not None:
             wc.wm.close()
@@ -123,20 +127,32 @@ def closeWiimote():
         wc = None
 
 def main():
-    logger.info("Press 1&2 on the Wiimote")
     global wc, startTime, runnerCount, screen
     screen = curses.initscr()
+    curses.savetty()
+    screen.erase()
+#    bottom , end = screen.getmaxyx()
+ #   bottom = bottom - 1
+    screen.addstr(0,0,"Press 1&2 on the Wiimote")
+    screen.refresh()
     wc = None
     while True:
         while (wc is None):
             try:
                 wc = WiiController()
                 wc.rumble()
+		screen.addstr(0, 0, "WiiMote Conected, press the trigger to start the race")
+		screen.refresh()
 		startTime = 0
 		runnerCount = 0
                 thread.start_new_thread(asyncore.loop,())
             except Exception, errMessage:
-                closeWiimote()
-	logger.debug("Race time = " + str(time.time() - startTime))
-        time.sleep(5)
+		screen.addstr(0,0,"Error - " + str(errMessage))
+                screen.refresh()
+		closeWiimote()
+                curses.resetty()
+	if (startTime != 0):
+		screen.addstr(0,0,"Time :" + str(time.time() - startTime))
+		screen.refresh()
+        time.sleep(1)
 main()
