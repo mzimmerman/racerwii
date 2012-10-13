@@ -8,7 +8,7 @@ Created on Oct 12, 2012
 Using code based upon MythPyWii by benjie
 '''
 
-import socket, asynchat, asyncore, time, cwiid, logging, os, thread, subprocess, curses
+import socket, asynchat, asyncore, time, cwiid, logging, os, thread, subprocess, curses, threading
 from math import atan, cos
 
 #logging.basicConfig(filename="/dev/stdout", level=logging.DEBUG)
@@ -44,7 +44,7 @@ class WiiController(object):
 
     def wmcb(self, messages,timeout="0"):
         state = self.state
-	global runnerCount , startTime, screen
+	global runnerCount , startTime, screen, lock
         for message in messages:
             if message[0] == cwiid.MESG_BTN:
                 state["buttons"] = message[1]
@@ -55,11 +55,11 @@ class WiiController(object):
                     closeWiimote()
                     continue
                 else:
-                    print "ERROR: ", message[1]
+                    writeTop(screen,"ERROR: ", message[1])
             elif message[0] == cwiid.MESG_ACC:
                 state["acc"] = message[1]
             else:
-                print "Unknown message!", message
+                writeTop(screen,"Unknown message!" + message)
             laststate = self.laststate
             #print "B: %d/%d %d          \r" % (state["buttons"],self.maxButtons,self.ms.ok()),
             #sys.stdout.flush()
@@ -83,21 +83,22 @@ class WiiController(object):
 #                if state["buttons"] == cwiid.BTN_HOME:
                 if state["buttons"] == cwiid.BTN_A:
 			if (startTime == 0):
-				screen.addstr(0,0,"Race is not started yet, press the trigger!")
+				writeTop(screen,"Race is not started yet, press the trigger!")
 			else:
 				curses.flash()
 				runnerCount = runnerCount + 1
-				screen.insertln()
-				screen.addstr(str(runnerCount) + " : " + str(time.time() - startTime))
-			screen.refresh()
+				with lock:
+					writeTop(screen,lock,str(runnerCount) + " : " + str(time.time() - startTime))
+					screen.insertln()
+				screen.refresh()
                 if state["buttons"] == cwiid.BTN_B:
 			curses.flash()
 			if (startTime == 0):
 				startTime = time.time()
 				screen.erase()
-				screen.addstr(0,0,"Race is started!")
+				writeTop(screen,lock,"Race is started!")
 			else:
-				screen.addstr(0,0,"Race is already started!")
+				writeTop(screen,lock,"Race is already started!")
 		   	screen.refresh()
  #               if state["buttons"] == cwiid.BTN_MINUS:
  #               if state["buttons"] == cwiid.BTN_UP:
@@ -126,33 +127,41 @@ def closeWiimote():
             wc.wm = None
         wc = None
 
-def main():
-    global wc, startTime, runnerCount, screen
-    screen = curses.initscr()
-    curses.savetty()
+def writeTop(screen, lock, phrase):
+	with lock:
+		screen.move(0,0)
+		screen.addstr(0,0,phrase)
+		screen.clrtoeol()
+		screen.move(0,0)
+	screen.refresh()
+
+def main(createdScreen):
+    global wc, startTime, runnerCount, screen, lock
+    lock = threading.RLock()
+    startTime = 0
+    runnerCount = 0
+    screen = createdScreen
     screen.erase()
-#    bottom , end = screen.getmaxyx()
- #   bottom = bottom - 1
-    screen.addstr(0,0,"Press 1&2 on the Wiimote")
-    screen.refresh()
+    curses.curs_set(0)
     wc = None
     while True:
         while (wc is None):
             try:
+		if (startTime == 0):
+			screen.clear()
+		        writeTop(screen,lock,"Press 1&2 on the Wiimote")
+		else:
+			writeTop(screen,lock,"Time :" + str(time.time() - startTime) + " - Wiimote disconnected, press 1&2 on the Wiimote")
                 wc = WiiController()
                 wc.rumble()
-		screen.addstr(0, 0, "WiiMote Conected, press the trigger to start the race")
-		screen.refresh()
-		startTime = 0
-		runnerCount = 0
+		writeTop(screen,lock,"WiiMote Conected, press the trigger to start the race")
                 thread.start_new_thread(asyncore.loop,())
             except Exception, errMessage:
-		screen.addstr(0,0,"Error - " + str(errMessage))
-                screen.refresh()
+		writeTop(screen,lock,"Error - " + str(errMessage))
 		closeWiimote()
-                curses.resetty()
 	if (startTime != 0):
-		screen.addstr(0,0,"Time :" + str(time.time() - startTime))
-		screen.refresh()
+		writeTop(screen,lock,"Time :" + str(time.time() - startTime))
         time.sleep(1)
-main()
+
+# start the application with a curses wrapper
+curses.wrapper(main)
