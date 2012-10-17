@@ -55,11 +55,11 @@ class WiiController(object):
                     closeWiimote()
                     continue
                 else:
-                    writeTop(screen,"ERROR: ", message[1])
+                    writeTop(screen,lock,"ERROR: ", message[1])
             elif message[0] == cwiid.MESG_ACC:
                 state["acc"] = message[1]
             else:
-                writeTop(screen,"Unknown message!" + message)
+                writeTop(screen,lock,"Unknown message!" + message)
             laststate = self.laststate
             #print "B: %d/%d %d          \r" % (state["buttons"],self.maxButtons,self.ms.ok()),
             #sys.stdout.flush()
@@ -83,12 +83,12 @@ class WiiController(object):
 #                if state["buttons"] == cwiid.BTN_HOME:
                 if state["buttons"] == cwiid.BTN_A:
 			if (startTime == 0):
-				writeTop(screen,"Race is not started yet, press the trigger!")
+				writeTop(screen,lock,"Race is not started yet, press the trigger!")
 			else:
 				curses.flash()
 				runnerCount = runnerCount + 1
 				with lock:
-					writeTop(screen,lock,str(runnerCount) + " : " + str(time.time() - startTime))
+					writeTop(screen,lock,str(runnerCount) + " - " + timeDiff(startTime, time.time()))
 					screen.insertln()
 				screen.refresh()
                 if state["buttons"] == cwiid.BTN_B:
@@ -127,6 +127,10 @@ def closeWiimote():
             wc.wm = None
         wc = None
 
+def timeDiff(begin, end):
+	diff = time.gmtime(end-begin)
+	return '{!s}.{:2.0f}'.format(time.strftime("%H:%M:%S",diff),((end - begin)*100%100))
+
 def writeTop(screen, lock, phrase):
 	with lock:
 		screen.move(0,0)
@@ -151,7 +155,7 @@ def main(createdScreen):
 			screen.clear()
 		        writeTop(screen,lock,"Press 1&2 on the Wiimote")
 		else:
-			writeTop(screen,lock,"Time :" + str(time.time() - startTime) + " - Wiimote disconnected, press 1&2 on the Wiimote")
+			writeTop(screen,lock,"Time :" + timeDiff(startTime,time.time()) + " - Wiimote disconnected, press 1&2 on the Wiimote")
                 wc = WiiController()
                 wc.rumble()
 		writeTop(screen,lock,"WiiMote Conected, press the trigger to start the race")
@@ -160,7 +164,7 @@ def main(createdScreen):
 		writeTop(screen,lock,"Error - " + str(errMessage))
 		closeWiimote()
 	if (startTime != 0):
-		writeTop(screen,lock,"Time :" + str(time.time() - startTime))
+		writeTop(screen,lock,"Time - " + timeDiff(startTime,time.time()))
         time.sleep(1)
 
 # start the application with a curses wrapper
