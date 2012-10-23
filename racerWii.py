@@ -13,6 +13,7 @@ from math import atan, cos
 
 #logging.basicConfig(filename="/dev/stdout", level=logging.DEBUG)
 
+
 logger = logging.getLogger("wiiRacer")
 logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler()
