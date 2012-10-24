@@ -46,7 +46,7 @@ class WiiController(object):
 
     def wmcb(self, messages,timeout="0"):
         state = self.state
-        global runners, startTime, screen, lock
+        global runners, startTime, screen, homeCount
         for message in messages:
             if message[0] == cwiid.MESG_BTN:
                 state["buttons"] = message[1]
@@ -82,7 +82,12 @@ class WiiController(object):
                     self.lasttime = self.lasttime + self.firstPressDelay
                     self.firstPress = False
                 # Stuff that doesn't need roll/etc calculations
-#                if state["buttons"] == cwiid.BTN_HOME:
+                if state["buttons"] == cwiid.BTN_HOME:
+                    homeCount += 1
+                    print "Pressed HOME " + str(homeCount) + " time(s)"
+                    if homeCount >= 5:
+                        pygame.quit()
+                        exit()
                 if state["buttons"] == cwiid.BTN_A:
                     if (startTime == 0):
                         print "Race is not started yet!"
@@ -164,11 +169,12 @@ def writeText(screen, phrase1, phrase2=None, startingFontSize=500):
     return fontSize1
 
 def main(screen):
-    global wc, startTime, runners
+    global wc, startTime, runners, homeCount
     clock = pygame.time.Clock()
 #    lock = threading.RLock()
     startTime = 0
     runners = []
+    homeCount = 0
     wc = None
     fontSize = 500
     while True:
@@ -177,7 +183,7 @@ def main(screen):
                 if (startTime != 0):
                     writeText(screen,"WiiMote disconnected! Press 1&2 on the WiiMote",clockDisplay(startTime,time.time()))
                 else:
-                    writeText(screen,"Press 1&2 on the WiiMote")
+                    writeText(screen,"Press 1&2 on the WiiMote","To quit, press the home button 5 times")
                 wc = WiiController()
                 wc.rumble()
                 thread.start_new_thread(asyncore.loop,())
