@@ -123,25 +123,32 @@ def timeDiff(begin, end):
     diff = time.gmtime(end-begin)
     return '{!s}.{:2.0f}'.format(time.strftime("%H:%M:%S",diff),((end - begin)*100%100))
 
-def writeText(screen, phrase, fontSize=500):
+def findMaxFontSize(x,y,phrase,fontSize):
+    while True:
+        size = pygame.font.Font(None, fontSize).size(phrase)
+        if size[0] > x or size[1] > y:
+            fontSize -= 5
+            continue
+        break
+    return fontSize, size[0], size[1]
+
+def writeText(screen, phrase1, phrase2=None, startingFontSize=500):
     size = screen.get_size()
     background = pygame.Surface(size)
     background = background.convert()
     background.fill((10,10,10))
-    font = pygame.font.Font(None, fontSize)
-    while True:
-        newSize = font.size(phrase)
-        if newSize[0] > size[0] or newSize[1] > size[1]:
-            fontSize -= 5
-            font = pygame.font.Font(None, fontSize)
-        else:
-            break
-    text = font.render(phrase, True, (250,250,250))
-#    textpos = text.get_rect(centerx=background.get_width()/2)
+    fontSize1 , x, y = findMaxFontSize(size[0],size[1],phrase1,startingFontSize)
+    font = pygame.font.Font(None, fontSize1)
+    text = font.render(phrase1, True, (250,250,250))
     background.blit(text, (0,0))
+    if phrase2 != None:
+        fontSize2 , x, y = findMaxFontSize(size[0],size[1]-y,phrase2,startingFontSize)
+        font = pygame.font.Font(None, fontSize2)
+        text = font.render(phrase2, True, (250,250,250))
+        background.blit(text, (0,size[1]-y))
     screen.blit(background,(0,0))
     pygame.display.flip()
-    return fontSize
+    return fontSize1
 
 def main(screen):
     global wc, startTime, runners
@@ -155,7 +162,7 @@ def main(screen):
         if wc is None:
             try:
                 if (startTime != 0):
-                    writeText(screen,"WiiMote disconnected! Press 1&2 on the WiiMote")
+                    writeText(screen,"WiiMote disconnected! Press 1&2 on the WiiMote",clockDisplay(startTime,time.time()))
                 else:
                     writeText(screen,"Press 1&2 on the WiiMote")
                 wc = WiiController()
@@ -167,8 +174,8 @@ def main(screen):
         elif startTime == 0:
                 writeText(screen,"Press trigger to start the race!")
         else: # if startTime != 0:
-            fontSize = writeText(screen,clockDisplay(startTime,time.time()),fontSize)
-        clock.tick(5)
+            fontSize = writeText(screen,clockDisplay(startTime,time.time()),"Overall #" + str(len(runners)+1),fontSize)
+        clock.tick(10)
 
 pygame.init()
 #screen = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
