@@ -86,6 +86,7 @@ class WiiController(object):
                     homeCount += 1
                     print "Pressed HOME " + str(homeCount) + " time(s)"
                     if homeCount >= 5:
+                        writeRaceResults(runners)
                         pygame.quit()
                         exit()
                 if state["buttons"] == cwiid.BTN_A:
@@ -100,18 +101,7 @@ class WiiController(object):
                         runners = []
                         print "Race started at " + str(startTime)
                     else:
-                        try:
-                            resultHtml = "<html><body><table>\n"
-                            x = 1
-                            for result in runners:
-                                resultHtml += "<tr><td>"+str(x)+"</td><td>"+result+"</td></tr>\n"
-                                x += 1
-                            resultHtml += "</table></body></html>\n"
-                            f = open('raceResults.html','w')
-                            f.write(resultHtml)
-                            f.close()
-                        except Exception, e:
-                            print e
+                        writeRaceResults(runners)
                         print "Race is already started, wrote file out!"
                         
             self.laststate = state.copy() #NOTE TO SELF: REMEMBER .copy() !!!
@@ -125,6 +115,21 @@ class WiiController(object):
         self.wm.enable(cwiid.FLAG_MESG_IFC | cwiid.FLAG_REPEAT_BTN)
         self.wm.mesg_callback = self.wmcb
         
+def writeRaceResults(runners):
+    try:
+        resultHtml = "<html><body><table>\n"
+        x = 1
+        for result in runners:
+            resultHtml += "<tr><td>"+str(x)+"</td><td>"+result+"</td></tr>\n"
+            x += 1
+        resultHtml += "</table></body></html>\n"
+        f = open('raceResults.html','w')
+        f.write(resultHtml)
+        f.close()
+    except Exception, e:
+        print e
+
+
 def closeWiimote():
     global wc , screen
     if wc is not None:
