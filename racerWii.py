@@ -8,7 +8,7 @@ w00t!
 Using code based upon MythPyWii by benjie
 '''
 
-import socket, asynchat, asyncore, time, cwiid, logging, os, thread, subprocess, threading, curses
+import socket, asynchat, asyncore, time, cwiid, logging, os, thread, subprocess, threading
 import pygame
 from pygame.locals import *
 from math import atan, cos
@@ -121,46 +121,67 @@ def closeWiimote():
             wc.wm.close()
             wc.wm = None
         wc = None
+        
+def clockDisplay(begin, end):
+    diff = time.gmtime(end-begin)
+    return '{!s}'.format(time.strftime("%H:%M:%S",diff))
 
 def timeDiff(begin, end):
-        diff = time.gmtime(end-begin)
-        return '{!s}.{:2.0f}'.format(time.strftime("%H:%M:%S",diff),((end - begin)*100%100))
+    diff = time.gmtime(end-begin)
+    return '{!s}.{:2.0f}'.format(time.strftime("%H:%M:%S",diff),((end - begin)*100%100))
 
-def writeTop(screen, lock, phrase):
-        with lock:
-            screen.move(0,0)
-            screen.addstr(0,0,phrase)
-            screen.clrtoeol()
-            screen.move(0,0)
-        screen.refresh()
+def writeText(screen, phrase, fontSize=500):
+    size = screen.get_size()
+    background = pygame.Surface(size)
+    background = background.convert()
+    background.fill((250, 250, 250))
+    font = pygame.font.Font(None, fontSize)
+    while True:
+        newSize = font.size(phrase)
+        if newSize[0] > size[0] or newSize[1] > size[1]:
+            fontSize -= 5
+            font = pygame.font.Font(None, fontSize)
+            print "trying font size " + str(fontSize)
+        else:
+            break
+    text = font.render(phrase, True, (10, 10, 10), (250,250,250))
+#    textpos = text.get_rect(centerx=background.get_width()/2)
+    background.blit(text, (0,0))
+    screen.blit(background,(0,0))
+    pygame.display.flip()
+    return fontSize
 
-def main(createdScreen):
-    global wc, startTime, runners, screen, lock
-    lock = threading.RLock()
+def main(screen):
+    global wc, startTime, runners
+    clock = pygame.time.Clock()
+#    lock = threading.RLock()
     startTime = 0
     runners = []
-    screen = createdScreen
-    screen.erase()
-    curses.curs_set(0)
     wc = None
+    fontSize = 500
     while True:
         while (wc is None):
             try:
                 if (startTime == 0):
-                    screen.clear()
-                    writeTop(screen,lock,"Press 1&2 on the Wiimote")
+                    writeText(screen,"Press 1&2 on the WiiMote")
+                    time.sleep(2)
+                    writeText(screen,"Press trigger to start the race!")
+                    time.sleep(2)
+                    startTime = time.time()
                 else:
-                    writeTop(screen,lock,"Time :" + timeDiff(startTime,time.time()) + " - Wiimote disconnected, press 1&2 on the Wiimote")
-                wc = WiiController()
-                wc.rumble()
-                writeTop(screen,lock,"WiiMote Conected, press the trigger to start the race")
+                    fontSize = writeText(screen,clockDisplay(startTime,time.time()),fontSize)
+#                wc = WiiController()
+#                wc.rumble()
                 thread.start_new_thread(asyncore.loop,())
             except Exception, errMessage:
-                writeTop(screen,lock,"Error - " + str(errMessage))
+#                writeTop(screen,lock,"Error - " + str(errMessage))
+                print "closing WiiMote, " + str(errMessage)
                 closeWiimote()
-        if (startTime != 0):
-                writeTop(screen,lock,"Time - " + timeDiff(startTime,time.time()))
-        time.sleep(1)
-
-# start the application with a curses wrapper
-curses.wrapper(main)
+#        if (startTime != 0):
+#                writeTop(screen,lock,"Time - " + timeDiff(startTime,time.time()))
+            clock.tick(5)
+pygame.init()
+screen = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
+pygame.display.set_caption('Racer Wii')
+#pygame.mouse.set_visible(0)
+main(screen)
