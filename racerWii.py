@@ -95,7 +95,20 @@ class WiiController(object):
                         runners = []
                         print "Race started at " + str(startTime)
                     else:
-                        print "Race is already started!"
+                        try:
+                            resultHtml = "<html><body><table>"
+                            x = 1
+                            for result in runners:
+                                resultHtml += "<tr><td>"+str(x)+"</td><td>"+result+"</td></tr>"
+                                x += 1
+                            resultHtml += "</table></body></html>"
+                            f = open('raceResults.html','w')
+                            f.write(resultHtml)
+                            f.close()
+                        except Exception, e:
+                            print e
+                        print "Race is already started, wrote file out!"
+                        
             self.laststate = state.copy() #NOTE TO SELF: REMEMBER .copy() !!!
 
     def __init__(self):
