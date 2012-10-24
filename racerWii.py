@@ -39,7 +39,7 @@ class WiiController(object):
         self.wm.rumble=1
         time.sleep(.2)
         self.wm.rumble=0
-    
+
     def wii_rel(self, v, axis):
         return float(v - self.wii_calibration[0][axis]) / (
         self.wii_calibration[1][axis] - self.wii_calibration[0][axis])
@@ -84,25 +84,18 @@ class WiiController(object):
                 # Stuff that doesn't need roll/etc calculations
 #                if state["buttons"] == cwiid.BTN_HOME:
                 if state["buttons"] == cwiid.BTN_A:
-                        if (startTime == 0):
-                            writeTop(screen,lock,"Race is not started yet, press the trigger!")
-                        else:
-                            curses.flash()
-                            runners.append(timeDiff(startTime,time.time()))
-                            with lock:
-                                writeTop(screen,lock,str(len(runners)) + " - " + timeDiff(startTime, time.time()))
-                                screen.insertln()
-                            screen.refresh()
+                    if (startTime == 0):
+                        print "Race is not started yet!"
+                    else:
+                        runners.append(timeDiff(startTime,time.time()))
+                        print str(len(runners)) + " : " + runners[len(runners)-1]
                 if state["buttons"] == cwiid.BTN_B:
-                        curses.flash()
-                        if (startTime == 0):
-                            startTime = time.time()
-                            runners = []
-                            screen.erase()
-                            writeTop(screen,lock,"Race is started!")
-                        else:
-                            writeTop(screen,lock,"Race is already started!")
-                        screen.refresh()
+                    if (startTime == 0):
+                        startTime = time.time()
+                        runners = []
+                        print "Race started at " + str(startTime)
+                    else:
+                        print "Race is already started!"
             self.laststate = state.copy() #NOTE TO SELF: REMEMBER .copy() !!!
 
     def __init__(self):
@@ -134,17 +127,16 @@ def writeText(screen, phrase, fontSize=500):
     size = screen.get_size()
     background = pygame.Surface(size)
     background = background.convert()
-    background.fill((250, 250, 250))
+    background.fill((10,10,10))
     font = pygame.font.Font(None, fontSize)
     while True:
         newSize = font.size(phrase)
         if newSize[0] > size[0] or newSize[1] > size[1]:
             fontSize -= 5
             font = pygame.font.Font(None, fontSize)
-            print "trying font size " + str(fontSize)
         else:
             break
-    text = font.render(phrase, True, (10, 10, 10), (250,250,250))
+    text = font.render(phrase, True, (250,250,250))
 #    textpos = text.get_rect(centerx=background.get_width()/2)
     background.blit(text, (0,0))
     screen.blit(background,(0,0))
@@ -160,28 +152,27 @@ def main(screen):
     wc = None
     fontSize = 500
     while True:
-        while (wc is None):
+        if wc is None:
             try:
-                if (startTime == 0):
-                    writeText(screen,"Press 1&2 on the WiiMote")
-                    time.sleep(2)
-                    writeText(screen,"Press trigger to start the race!")
-                    time.sleep(2)
-                    startTime = time.time()
+                if (startTime != 0):
+                    writeText(screen,"WiiMote disconnected! Press 1&2 on the WiiMote")
                 else:
-                    fontSize = writeText(screen,clockDisplay(startTime,time.time()),fontSize)
-#                wc = WiiController()
-#                wc.rumble()
+                    writeText(screen,"Press 1&2 on the WiiMote")
+                wc = WiiController()
+                wc.rumble()
                 thread.start_new_thread(asyncore.loop,())
             except Exception, errMessage:
-#                writeTop(screen,lock,"Error - " + str(errMessage))
                 print "closing WiiMote, " + str(errMessage)
                 closeWiimote()
-#        if (startTime != 0):
-#                writeTop(screen,lock,"Time - " + timeDiff(startTime,time.time()))
-            clock.tick(5)
+        elif startTime == 0:
+                writeText(screen,"Press trigger to start the race!")
+        else: # if startTime != 0:
+            fontSize = writeText(screen,clockDisplay(startTime,time.time()),fontSize)
+        clock.tick(5)
+
 pygame.init()
-screen = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
+#screen = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
+screen = pygame.display.set_mode((800,600))
 pygame.display.set_caption('Racer Wii')
-#pygame.mouse.set_visible(0)
+pygame.mouse.set_visible(0)
 main(screen)
