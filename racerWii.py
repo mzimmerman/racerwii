@@ -101,12 +101,12 @@ class WiiController(object):
                         print "Race started at " + str(startTime)
                     else:
                         try:
-                            resultHtml = "<html><body><table>"
+                            resultHtml = "<html><body><table>\n"
                             x = 1
                             for result in runners:
-                                resultHtml += "<tr><td>"+str(x)+"</td><td>"+result+"</td></tr>"
+                                resultHtml += "<tr><td>"+str(x)+"</td><td>"+result+"</td></tr>\n"
                                 x += 1
-                            resultHtml += "</table></body></html>"
+                            resultHtml += "</table></body></html>\n"
                             f = open('raceResults.html','w')
                             f.write(resultHtml)
                             f.close()
@@ -197,8 +197,8 @@ def main(screen):
         clock.tick(10)
 
 pygame.init()
-#screen = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
-screen = pygame.display.set_mode((800,600))
+screen = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
+#screen = pygame.display.set_mode((800,600))
 pygame.display.set_caption('Racer Wii')
 pygame.mouse.set_visible(0)
 main(screen)
