@@ -138,17 +138,22 @@ def closeWiimote():
             wc.wm = None
         wc = None
         
-def clockDisplay(begin, end):
-    diff = time.gmtime(end-begin)
-    return '{!s}'.format(time.strftime("%H:%M:%S",diff))
-
-def timeDiff(begin, end):
+def factorTime(begin, end):
     diff = end-begin
     hours = math.floor(diff / (60 * 60))
     diff -= hours * 60 * 60
     minutes = math.floor(diff / 60)
     diff -= minutes * 60
     seconds = diff % 60
+    return hours, minutes, seconds
+        
+def clockDisplay(begin, end):
+    hours, minutes, seconds = factorTime(begin,end)
+    seconds = math.floor(seconds)
+    return '{:02.0f}:{:02.0f}:{:02.0f}'.format(hours,minutes,seconds)
+
+def timeDiff(begin, end):
+    hours, minutes, seconds = factorTime(begin,end)
     return '{:02.0f}:{:02.0f}:{:05.2f}'.format(hours,minutes,seconds)
 
 def findMaxFontSize(x,y,phrase,fontSize):
