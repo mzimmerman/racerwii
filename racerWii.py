@@ -8,7 +8,7 @@ w00t!
 Using code based upon MythPyWii by benjie
 '''
 
-import socket, asynchat, asyncore, time, cwiid, logging, os, thread, subprocess, threading
+import socket, asynchat, asyncore, time, cwiid, logging, os, thread, subprocess, threading, math
 import pygame
 from pygame.locals import *
 from math import atan, cos
@@ -143,8 +143,13 @@ def clockDisplay(begin, end):
     return '{!s}'.format(time.strftime("%H:%M:%S",diff))
 
 def timeDiff(begin, end):
-    diff = time.gmtime(end-begin)
-    return '{!s}.{:2.0f}'.format(time.strftime("%H:%M:%S",diff),((end - begin)*100%100))
+    diff = end-begin
+    hours = math.floor(diff / (60 * 60))
+    diff -= hours * 60 * 60
+    minutes = math.floor(diff / 60)
+    diff -= minutes * 60
+    seconds = diff % 60
+    return '{:02.0f}:{:02.0f}:{:05.2f}'.format(hours,minutes,seconds)
 
 def findMaxFontSize(x,y,phrase,fontSize):
     while True:
@@ -200,7 +205,6 @@ def main(screen):
         else: # if startTime != 0:
             fontSize = writeText(screen,clockDisplay(startTime,time.time()),"Overall #" + str(len(runners)+1),fontSize)
         clock.tick(10)
-
 pygame.init()
 screen = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
 #screen = pygame.display.set_mode((800,600))
