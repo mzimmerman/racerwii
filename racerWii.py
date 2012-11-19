@@ -205,14 +205,23 @@ def main(screen):
             except Exception, errMessage:
                 print "closing WiiMote, " + str(errMessage)
                 closeWiimote()
+        
         elif startTime == 0:
                 writeText(screen,"Press trigger to start the race!")
         else: # if startTime != 0:
-            fontSize = writeText(screen,clockDisplay(startTime,time.time()),"Overall #" + str(len(runners)+1),fontSize)
+            now = time.time()
+            fontSize = writeText(screen,clockDisplay(startTime,now),"Overall #" + str(len(runners)+1),fontSize)
+            if round(now,1) % 5 == 0:
+                try:
+                    wc.wm.request_status()
+                except Exception, errMessage:
+                    print "Wiimote connection lost"
+                    closeWiimote()
         clock.tick(10)
+
 pygame.init()
-screen = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
-#screen = pygame.display.set_mode((800,600))
+#screen = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
+screen = pygame.display.set_mode((800,600))
 pygame.display.set_caption('Racer Wii')
 pygame.mouse.set_visible(0)
 main(screen)
