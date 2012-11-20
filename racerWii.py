@@ -89,6 +89,9 @@ class WiiController(object):
                         writeRaceResults(runners)
                         pygame.quit()
                         exit()
+                if state["buttons"] == cwiid.BTN_MINUS:
+                    if (len(runners) > 0):
+                        runners.pop()
                 if state["buttons"] == cwiid.BTN_A:
                     if (startTime == 0):
                         print "Race is not started yet!"
